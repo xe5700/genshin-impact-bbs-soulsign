@@ -8,7 +8,7 @@
 // @expire            900000
 // @domain            bbs.mihoyo.com
 // @domain            api-takumi.mihoyo.com
-// @param            device_id 设备UUID(建议随机生成一个，不要使用默认的。),75ef5e57-d4c2-4f6e-9d0b-6b6dbba51635
+// @param            device_id 设备UUID(建议随机生成一个，不要使用默认的，有条件可以直接抓包使用手机的。),75ef5e57-d4c2-4f6e-9d0b-6b6dbba51635
 // @param            user_agent UserAgent(如果为空会使用默认UG),建议根据你的手机型号自定义。
 // ==/UserScript==
 
