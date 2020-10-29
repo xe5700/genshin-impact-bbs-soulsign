@@ -25,7 +25,7 @@ exports.run = async function (param) {
       'User-Agent': param.user_agent==""?default_ug:param.user_agent, 
       'X-Requested-With': 'com.mihoyo.hyperion', 
       'Referer': 'https://webstatic.mihoyo.com/', 
-      'x-rpc-device_id': param.device_id
+      'x-rpc-device_id': param.device_id==""?"75ef5e57-d4c2-4f6e-9d0b-6b6dbba51635":param.device_id
     }
   };
   let roles1 = await axios.get('https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie', config);
