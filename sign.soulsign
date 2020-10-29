@@ -1,0 +1,89 @@
+// ==UserScript==
+// @name              原神米游社签到活动脚本
+// @namespace         https://soulsign.inu1255.cn/scripts/278
+// @version           1.3
+// @author            xjboss
+// @loginURL          https://bbs.mihoyo.com/ys/
+// @updateURL         https://soulsign.inu1255.cn/script/xjboss/原神签到202010
+// @expire            900000
+// @domain            bbs.mihoyo.com
+// @domain            api-takumi.mihoyo.com
+// @param            device_id 设备UUID(建议随机生成一个，不要使用默认的。),75ef5e57-d4c2-4f6e-9d0b-6b6dbba51635
+// @param            user_agent UserAgent(如果为空会使用默认UG),建议根据你的手机型号自定义。
+// ==/UserScript==
+
+//请自行修改手机型号COOKIE，否则可能会出问题
+
+let default_ug = 'Mozilla/5.0 (Linux; Android 9; A3010 Build/QKQ1.190716.003; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/86.0.4240.99 Mobile Safari/537.36 miHoYoBBS/2.1.0'
+exports.run = async function (param) {
+  console.log("device_id: "+ param.device_id)
+  console.log("user_agent: "+ param.user_agent)
+  let config = {
+    headers: { 
+      'Accept': '*/*',
+      'Origin': 'https://webstatic.mihoyo.com', 
+      'User-Agent': param.user_agent==""?default_ug:param.user_agent, 
+      'X-Requested-With': 'com.mihoyo.hyperion', 
+      'Referer': 'https://webstatic.mihoyo.com/', 
+      'x-rpc-device_id': param.device_id
+    }
+  };
+  let roles1 = await axios.get('https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie', config);
+  let roles = roles1.data;
+  if(roles.retcode != 0){
+    throw roles.message;
+  }
+  roles = roles.data.list
+  console.log(roles)
+  let roles_result = []
+  for(let role of roles){
+    console.log(role)
+    if(role.game_biz == "hk4e_cn"){
+      console.log("yuanshen")
+      let region = role.region;
+      let uid = role.game_uid;
+      console.log(role)
+      let reward_0 = await axios.post('https://api-takumi.mihoyo.com/event/bbs_sign_reward/sign', {"act_id":"e202009291139501","region":region,"uid":uid}, config);
+      let reward_total_0 = await axios.get(`https://api-takumi.mihoyo.com/event/bbs_sign_reward/info?act_id=e202009291139501&region=${region}&uid=${uid}`, config);
+      reward = reward_0.data;
+      reward_total = reward_total_0.data;
+      console.log(reward)
+      console.log(reward_total)
+      roles_result.push({nickname: role.nickname, retcode: reward.retcode, total: reward_total.data.total_sign_day, message: reward.message})
+    }
+  };
+  console.log(roles_result);
+  let success = false;
+  for(let role of roles_result){
+    if(role.retcode == 0 || role.retcode == -5003){
+      success = true;
+      break;
+    }
+  }
+  let result = "";
+  for(let role of roles_result){
+    let current = `角色 ${role.nickname}`;
+    if(role.retcode == 0){
+      current += " 签到成功";
+    }else{
+		if(role.retcode == -5003){
+			current += ` 已经签到过了`
+		}else{
+	  		current += ` 签到失败 原因：${role.message}`;
+		}
+    }
+    current += ` 共签到${role.total}天`;
+    console.log(current)
+    result += current+"\n";
+  }
+  if(success){
+    return result;
+  }else{
+    throw result;
+  }
+};
+
+exports.check = async function (param) {
+	var center = await axios.get('https://bbs.mihoyo.com/ys/accountCenter');
+	return center.request.responseURL != "https://bbs.mihoyo.com/ys/accountCenter/postList";
+};
