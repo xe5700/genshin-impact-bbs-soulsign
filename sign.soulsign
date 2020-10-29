@@ -5,10 +5,11 @@
 // @author            xjboss
 // @loginURL          https://bbs.mihoyo.com/ys/
 // @updateURL         https://soulsign.inu1255.cn/script/xjboss/原神米游社签到活动脚本
+// @grant             require
 // @expire            900000
 // @domain            bbs.mihoyo.com
 // @domain            api-takumi.mihoyo.com
-// @param            device_id 设备UUID(建议随机生成一个，不要使用默认的，有条件可以直接抓包使用手机的。),75ef5e57-d4c2-4f6e-9d0b-6b6dbba51635
+// @param            device_id 设备UUID(建议随机生成一个固定UUID，默认是随机UUID，有条件可以直接抓包使用手机的。),随机UUID
 // @param            user_agent UserAgent(如果为空会使用默认UG),建议根据你的手机型号自定义。
 // ==/UserScript==
 
@@ -16,6 +17,15 @@
 
 let default_ug = 'Mozilla/5.0 (Linux; Android 9; A3010 Build/QKQ1.190716.003; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/86.0.4240.99 Mobile Safari/537.36 miHoYoBBS/2.1.0'
 exports.run = async function (param) {
+  let UUID = await require("https://cdn.jsdelivr.net/npm/pure-uuid@1.6.1/uuid.min.js");
+  if (param.device_id == undefined){
+	  console.log("未设置UUID，使用随机UUID。");
+	  param.device_id = new UUID(4);
+  }
+  if (param.user_agent == undefined){
+	  console.log("未设置USERAGENT, 使用随机USER AGENT。")
+	  param.user_agent = default_ug;
+  }
   console.log("device_id: "+ param.device_id)
   console.log("user_agent: "+ param.user_agent)
   let config = {
