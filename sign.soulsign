@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              原神米游社签到活动脚本
 // @namespace         https://soulsign.inu1255.cn/scripts/278
-// @version           1.3
+// @version           1.4
 // @author            xjboss
 // @loginURL          https://bbs.mihoyo.com/ys/
 // @updateURL         https://soulsign.inu1255.cn/script/xjboss/原神米游社签到活动脚本
@@ -10,7 +10,7 @@
 // @domain            bbs.mihoyo.com
 // @domain            api-takumi.mihoyo.com
 // @param            device_id 设备UUID(建议随机生成一个固定UUID，默认是随机UUID，有条件可以直接抓包使用手机的。),随机UUID
-// @param            user_agent UserAgent(如果为空会使用默认UG),建议根据你的手机型号自定义。
+// @param            user_agent UserAgent(如果为空会使用默认UG)，建议根据你的手机型号自定义。
 // ==/UserScript==
 
 //请自行修改手机型号COOKIE，否则可能会出问题
@@ -23,7 +23,7 @@ exports.run = async function (param) {
 	  param.device_id = new UUID(4);
   }
   if (param.user_agent == undefined){
-	  console.log("未设置USERAGENT, 使用随机USER AGENT。")
+	  console.log("未设置USERAGENT, 使用默认USER AGENT。")
 	  param.user_agent = default_ug;
   }
   console.log("device_id: "+ param.device_id)
@@ -32,10 +32,10 @@ exports.run = async function (param) {
     headers: { 
       'Accept': '*/*',
       'Origin': 'https://webstatic.mihoyo.com', 
-      'User-Agent': param.user_agent==""?default_ug:param.user_agent, 
+      'User-Agent': param.user_agent, 
       'X-Requested-With': 'com.mihoyo.hyperion', 
       'Referer': 'https://webstatic.mihoyo.com/', 
-      'x-rpc-device_id': param.device_id==""?"75ef5e57-d4c2-4f6e-9d0b-6b6dbba51635":param.device_id
+      'x-rpc-device_id': param.device_id
     }
   };
   let roles1 = await axios.get('https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie', config);
