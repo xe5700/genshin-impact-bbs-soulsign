@@ -11,31 +11,80 @@
 // @domain            api-takumi.mihoyo.com
 // @param            device_id 设备UUID(建议随机生成一个固定UUID，默认是随机UUID，有条件可以直接抓包使用手机的。),随机UUID
 // @param            user_agent UserAgent(如果为空会使用默认UG)，建议根据你的手机型号自定义。
+// @param            app_version 米游社版本号,2.1.0
 // ==/UserScript==
 
 //请自行修改手机型号COOKIE，否则可能会出问题
 
-let default_ug = 'Mozilla/5.0 (Linux; Android 9; A3010 Build/QKQ1.190716.003; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/86.0.4240.99 Mobile Safari/537.36 miHoYoBBS/2.1.0'
+let default_ug = 'Mozilla/5.0 (Linux; Android 9; A3010 Build/QKQ1.190716.003; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/86.0.4240.99 Mobile Safari/537.36 miHoYoBBS/'
+let chars = "1234567890qwertyuiopasdfghjklzxcvbnm"
+var UUID,MD5
+function randStr(len){
+  let gen = ""
+  for (var i = 0;i< len; i++){
+    let a = Math.ceil(Math.random() * chars.length);
+    gen += chars.substring(a,a+1);
+  }
+  return gen;
+}
+function mkDS(app_version){
+  let T = Math.floor(Date.now() / 1000)
+  console.log("My time equals "+T)
+  let s = randStr(6)
+  const salt_=MD5(app_version)
+  let sign_maker=`salt=${salt_}&t=${T}&r=${randStr}`;
+  let sign = MD5(sign_maker);
+  let ds = `${T},${s},${sign}`
+  console.log(ds);
+  return ds;
+}
+/*
+https://github.com/y1ndan/genshin-impact-helper/issues/15
+def get_DS():
+    t = int(time.time())
+    a = "".join(random.sample('abcdefghijklmnopqrstuvwxyz0123456789', 6))
+    # ios/安卓验证 x-rpc-client_type=1/2
+    # b = hashlib.md5(f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(encoding="utf-8")).hexdigest()
+    # 原神签到验证 x-rpc-client_type=5
+    b = hashlib.md5(f"salt=5337810b0c500ace9c4cd745f4b8bcf5&t={t}&r={a}".encode(encoding="utf-8")).hexdigest()
+    # 仅用于安卓验证 x-rpc-client_type=2
+    c = hashlib.md5(f"d7d38ba4719a2dfc6ec10c956733a8f4com.mihoyo.hyperion2.1.0{t}".encode(encoding="utf-8")).hexdigest()
+    return f"{t},{a},{b},{c}"
+*/
 exports.run = async function (param) {
-  let UUID = await require("https://cdn.jsdelivr.net/npm/pure-uuid@1.6.1/uuid.min.js");
+  UUID = await require("https://cdn.jsdelivr.net/npm/pure-uuid@1.6.1/uuid.min.js");
+  MD5 = await require('https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js');
+  console.log(MD5);
+  if (param.app_version == undefined){
+	  console.log("未设置米游社版本，使用2.1.0。");
+	  param.app_version = "2.1.0";
+  }
   if (param.device_id == undefined){
 	  console.log("未设置UUID，使用随机UUID。");
 	  param.device_id = new UUID(4);
   }
   if (param.user_agent == undefined){
 	  console.log("未设置USERAGENT, 使用默认USER AGENT。")
-	  param.user_agent = default_ug;
+	  param.user_agent = default_ug+ param.app_version;
   }
+  let id = new String(param.device_id)
+  param.device_id = id.replace("-","").toUpperCase();
   console.log("device_id: "+ param.device_id)
   console.log("user_agent: "+ param.user_agent)
+  console.log("app version: "+ param.app_version)
+  signurl = "https://webstatic.mihoyo.com/bbs/event/signin-ys/index.html"
+  const act_id = "e202009291139501"
+  _referer = `${signurl}?bbs_auth_required=true&act_id=${act_id}&utm_source=bbs` +
+             `&utm_medium=mys&utm_campaign=icon`
   let config = {
     headers: { 
-      'Accept': '*/*',
-      'Origin': 'https://webstatic.mihoyo.com', 
       'User-Agent': param.user_agent, 
       'X-Requested-With': 'com.mihoyo.hyperion', 
-      'Referer': 'https://webstatic.mihoyo.com/', 
-      'x-rpc-device_id': param.device_id
+      'Referer': _referer, 
+      'x-rpc-device_id': param.device_id,
+      'x-rpc-client_type': '5',
+      'x-rpc-app_version': param.app_version,
+      'Accept-Encoding': 'gzip, deflate, br'
     }
   };
   let roles1 = await axios.get('https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie', config);
@@ -53,8 +102,10 @@ exports.run = async function (param) {
       let region = role.region;
       let uid = role.game_uid;
       console.log(role)
-      let reward_0 = await axios.post('https://api-takumi.mihoyo.com/event/bbs_sign_reward/sign', {"act_id":"e202009291139501","region":region,"uid":uid}, config);
-      let reward_total_0 = await axios.get(`https://api-takumi.mihoyo.com/event/bbs_sign_reward/info?act_id=e202009291139501&region=${region}&uid=${uid}`, config);
+      config.headers.DS = mkDS(param.app_version);
+      let reward_0 = await axios.post('https://api-takumi.mihoyo.com/event/bbs_sign_reward/sign', {"act_id":act_id,"region":region,"uid":uid}, config);
+      config.headers.DS = null;
+      let reward_total_0 = await axios.get(`https://api-takumi.mihoyo.com/event/bbs_sign_reward/info?act_id=${act_id}&region=${region}&uid=${uid}`, config);
       reward = reward_0.data;
       reward_total = reward_total_0.data;
       console.log(reward)
